@@ -1,0 +1,118 @@
+# qlib 配置文件
+# qlib Configuration File
+
+# ==================== 基础配置 / Basic Configuration ====================
+
+# 数据存储路径 / Data storage path
+qlib_data_path: data/qlib_data
+
+# 日志级别 / Log level
+log_level: INFO
+
+# ==================== 数据配置 / Data Configuration ====================
+
+# 股票池配置 / Stock pool configuration
+market:
+  # 市场类型 / Market type (cn: 中国股市 / Chinese stock market)
+  market: cn
+
+  # 基准指数 / Benchmark index
+  benchmark: sh000300
+
+  # 股票池 / Stock pool
+  pool: csi300
+
+# 数据频率 / Data frequency (1d: 日线, 1min: 分钟线)
+# Data frequency (1d: daily, 1min: minute)
+frequency: 1d
+
+# ==================== 特征配置 / Feature Configuration ====================
+
+# 数据特征列 / Data feature columns
+features:
+  - $open      # 开盘价 / Open price
+  - $close     # 收盘价 / Close price
+  - $high      # 最高价 / High price
+  - $low       # 最低价 / Low price
+  - $volume    # 成交量 / Volume
+  - $factor    # 复权因子 / Adjustment factor
+
+# 标签配置 / Label configuration
+label:
+  # 预测目标 / Prediction target (Ref($close, -2) / Ref($close, -1) - 1 表示预测下一天收益率)
+  # Prediction target (Ref($close, -2) / Ref($close, -1) - 1 means predicting next day return)
+  expression: Ref($close, -2) / Ref($close, -1) - 1
+
+  # 标签名称 / Label name
+  name: label
+
+# ==================== 数据处理器配置 / Data Processor Configuration ====================
+
+# 数据处理器 / Data processor
+processor:
+  # 时间序列处理器 / Time series processor
+  - class: DropnaLabel
+    module_path: qlib.data.dataset.processor
+
+  # 特征标准化 / Feature normalization
+  - class: ZScoreNorm
+    module_path: qlib.data.dataset.processor
+    kwargs:
+      fields_group: feature
+
+# ==================== 数据集配置 / Dataset Configuration ====================
+
+dataset:
+  # 数据集类 / Dataset class
+  class: DatasetH
+  module_path: qlib.data.dataset
+
+  # 数据集参数 / Dataset parameters
+  kwargs:
+    handler:
+      class: DataHandlerLP
+      module_path: qlib.data.dataset.handler
+      kwargs:
+        start_time: 2010-01-01
+        end_time: 2024-12-31
+        fit_start_time: 2010-01-01
+        fit_end_time: 2018-12-31
+        instruments: csi300
+
+    segments:
+      train: [2010-01-01, 2018-12-31]
+      valid: [2019-01-01, 2020-12-31]
+      test: [2021-01-01, 2024-12-31]
+
+# ==================== 模型配置 / Model Configuration ====================
+
+# 默认模型配置 / Default model configuration
+model:
+  # 模型类 / Model class
+  class: LGBModel
+  module_path: qlib.contrib.model.gbdt
+
+  # 模型参数 / Model parameters
+  kwargs:
+    loss: binary
+    colsample_bytree: 0.8
+    learning_rate: 0.05
+    max_depth: 6
+    n_estimators: 1000
+    num_leaves: 31
+    subsample: 0.8
+
+# ==================== 回测配置 / Backtest Configuration ====================
+
+backtest:
+  # 初始资金 / Initial capital
+  initial_capital: 1000000
+
+  # 手续费率 / Commission rate
+  commission: 0.0003
+
+  # 滑点 / Slippage
+  slippage: 0.001
+
+  # 基准 / Benchmark
+  benchmark: sh000300
